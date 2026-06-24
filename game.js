@@ -13,22 +13,22 @@ class SoundEngine {
     if (!this.ctx) return;
     try {
       switch (type) {
-        case 'click':   this._osc(800, 'sine', 0.08, 0.10); break;
-        case 'place':   this._osc(300, 'triangle', 0.15, 0.12);
-                        setTimeout(() => this._osc(450, 'triangle', 0.1, 0.10), 50); break;
-        case 'safe':    this._osc(660, 'sine', 0.2, 0.10);
-                        setTimeout(() => this._osc(880, 'sine', 0.2, 0.10), 100); break;
+        case 'click': this._osc(800, 'sine', 0.08, 0.10); break;
+        case 'place': this._osc(300, 'triangle', 0.15, 0.12);
+          setTimeout(() => this._osc(450, 'triangle', 0.1, 0.10), 50); break;
+        case 'safe': this._osc(660, 'sine', 0.2, 0.10);
+          setTimeout(() => this._osc(880, 'sine', 0.2, 0.10), 100); break;
         case 'explode': this._boom(); break;
-        case 'win':     this._win(); break;
-        case 'tick':    this._osc(1000, 'sine', 0.03, 0.05); break;
-        case 'switch':  this._osc(400, 'triangle', 0.15, 0.08); break;
+        case 'win': this._win(); break;
+        case 'tick': this._osc(1000, 'sine', 0.03, 0.05); break;
+        case 'switch': this._osc(400, 'triangle', 0.15, 0.08); break;
       }
-    } catch (e) {}
+    } catch (e) { }
   }
   _osc(freq, type, duration, gain = 0.15) {
     const osc = this.ctx.createOscillator();
-    const g   = this.ctx.createGain();
-    osc.type  = type;
+    const g = this.ctx.createGain();
+    osc.type = type;
     osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
     g.gain.setValueAtTime(gain, this.ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
@@ -36,7 +36,7 @@ class SoundEngine {
     osc.start(); osc.stop(this.ctx.currentTime + duration);
   }
   _boom() {
-    const buf  = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.6, this.ctx.sampleRate);
+    const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.6, this.ctx.sampleRate);
     const data = buf.getChannelData(0);
     for (let i = 0; i < data.length; i++)
       data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2);
@@ -71,8 +71,8 @@ const G = {
   placementDone: false, oppPlacementDone: false,
 
   // My board (I reveal, opponent's mines are hidden here)
-  myRevealed:  new Set(),
-  myExploded:  new Set(),
+  myRevealed: new Set(),
+  myExploded: new Set(),
 
   // Opponent board (opponent reveals, my mines are hidden here) - for spectator view
   oppRevealed: new Set(),
@@ -96,17 +96,17 @@ const G = {
 // ===== Utilities =====
 function genCode() {
   const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({length:6}, () => c[Math.floor(Math.random()*c.length)]).join('');
+  return Array.from({ length: 6 }, () => c[Math.floor(Math.random() * c.length)]).join('');
 }
-function idx(r, c)   { return r * G.gridSize + c; }
-function coord(i)    { return { r: Math.floor(i / G.gridSize), c: i % G.gridSize }; }
+function idx(r, c) { return r * G.gridSize + c; }
+function coord(i) { return { r: Math.floor(i / G.gridSize), c: i % G.gridSize }; }
 function adj(r, c) {
   const a = [];
   for (let dr = -1; dr <= 1; dr++)
     for (let dc = -1; dc <= 1; dc++) {
       if (!dr && !dc) continue;
       const nr = r + dr, nc = c + dc;
-      if (nr >= 0 && nr < G.gridSize && nc >= 0 && nc < G.gridSize) a.push({r: nr, c: nc});
+      if (nr >= 0 && nr < G.gridSize && nc >= 0 && nc < G.gridSize) a.push({ r: nr, c: nc });
     }
   return a;
 }
@@ -134,8 +134,8 @@ function createParticles() {
     const p = document.createElement('div');
     p.className = 'particle';
     p.style.left = Math.random() * 100 + '%';
-    p.style.animationDuration  = (5 + Math.random() * 10) + 's';
-    p.style.animationDelay     = (Math.random() * 8) + 's';
+    p.style.animationDuration = (5 + Math.random() * 10) + 's';
+    p.style.animationDelay = (Math.random() * 8) + 's';
     p.style.width = p.style.height = (2 + Math.random() * 4) + 'px';
     c.appendChild(p);
   }
@@ -161,7 +161,7 @@ function initLobby() {
     if (jf.classList.contains('active')) document.getElementById('join-code-input').focus();
   });
   document.getElementById('join-code-input').addEventListener('input', e => {
-    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
   });
   document.getElementById('btn-join-submit').addEventListener('click', () => {
     const code = document.getElementById('join-code-input').value.trim();
@@ -192,10 +192,10 @@ function initCreate() {
     G.vsAI = false; sound.play('click');
   });
   document.getElementById('btn-create-start').addEventListener('click', () => {
-    G.gridSize   = parseInt(gridSel.value);
-    G.mineCount  = parseInt(mineSel.value);
-    G.isHost     = true;
-    G.roomCode   = genCode();
+    G.gridSize = parseInt(gridSel.value);
+    G.mineCount = parseInt(mineSel.value);
+    G.isHost = true;
+    G.roomCode = genCode();
     sound.play('click');
     if (G.vsAI) {
       startPlacement();
@@ -210,9 +210,9 @@ function initCreate() {
 }
 
 function updateMineOpts() {
-  const size  = parseInt(document.getElementById('grid-size').value);
+  const size = parseInt(document.getElementById('grid-size').value);
   const total = size * size;
-  const sel   = document.getElementById('mine-count');
+  const sel = document.getElementById('mine-count');
   sel.innerHTML = '';
   [
     { l: `سهل (${Math.floor(total * 0.12)})`, v: Math.floor(total * 0.12) },
@@ -231,7 +231,7 @@ let G_FirebaseChannel = null;
 
 function setupChannel() {
   cleanupChannel();
-  
+
   // Check if Firebase is available
   if (typeof firebase === 'undefined' || !firebase.database) {
     console.warn('Firebase not available - using local BroadcastChannel fallback');
@@ -242,7 +242,7 @@ function setupChannel() {
   try {
     const database = firebase.database();
     const roomRef = database.ref(`rooms/${G.roomCode}`);
-    
+
     // Verify Firebase connection
     database.ref('.info/connected').on('value', (snapshot) => {
       if (snapshot.val() === true) {
@@ -251,7 +251,7 @@ function setupChannel() {
         console.warn('❌ Firebase غير متصل');
       }
     });
-    
+
     G_FirebaseChannel = {
       roomRef: roomRef,
       messagesRef: database.ref(`rooms/${G.roomCode}/messages`),
@@ -276,7 +276,7 @@ function setupChannel() {
         console.error('❌ فشل إنشاء الغرفة:', err);
         showToast('خطأ في إنشاء الغرفة: ' + err.message, 'error');
       });
-      
+
       // Set up listeners BEFORE guest connects
       const messagesRef = G_FirebaseChannel.messagesRef;
       messagesRef.limitToLast(50).on('child_added', (snapshot) => {
@@ -287,12 +287,12 @@ function setupChannel() {
         }
       });
       G_FirebaseChannel.listeners.push({ ref: messagesRef, event: 'child_added' });
-      
+
     } else {
       // Guest joining - verify room exists with timeout
       let roomCheckCompleted = false;
       console.log('👤 ضيف ينضم إلى الغرفة:', G.roomCode);
-      
+
       roomRef.once('value', (snapshot) => {
         roomCheckCompleted = true;
         if (!snapshot.exists()) {
@@ -304,7 +304,7 @@ function setupChannel() {
           showScreen('screen-lobby');
           return;
         }
-        
+
         console.log('✅ تم التحقق من وجود الغرفة');
         // Room exists, now set up message listeners BEFORE updating player count
         const messagesRef = G_FirebaseChannel.messagesRef;
@@ -316,12 +316,12 @@ function setupChannel() {
           }
         });
         G_FirebaseChannel.listeners.push({ ref: messagesRef, event: 'child_added' });
-        
+
         // Now update player count and send join message
         roomRef.update({ players: 2 }).catch(err => console.error('❌ خطأ في التحديث:', err));
         send({ type: 'join' });
       });
-      
+
       // Timeout check for room verification
       setTimeout(() => {
         if (!roomCheckCompleted && G_FirebaseChannel && G_FirebaseChannel.isOpen) {
@@ -435,9 +435,9 @@ function joinRoom(code) {
   G.roomCode = code; G.isHost = false; G.vsAI = false;
   setupChannel();
   showToast('🔌 جاري الاتصال بالغرفة...', 'info');
-  
+
   // Wait up to 10 seconds for connection (moved to setupChannel for guest)
-  G.connectionTimeoutId = setTimeout(() => { 
+  G.connectionTimeoutId = setTimeout(() => {
     if (!G.oppConnected) {
       console.warn(`Connection timeout for room code: ${code}`);
       showToast('❌ لم يُعثر على الغرفة.\n\nتحقق من:\n✓ الكود صحيح (6 أحرف)\n✓ Firebase مهيأ\n✓ الخصم في الغرفة', 'error');
@@ -534,7 +534,7 @@ function updateTimerEl(vEl, cEl) {
   if (vEl) {
     vEl.textContent = G.timeLeft;
     vEl.className = 'timer-value';
-    if (G.timeLeft <= 5)  vEl.classList.add('critical');
+    if (G.timeLeft <= 5) vEl.classList.add('critical');
     else if (G.timeLeft <= 10) vEl.classList.add('warning');
   }
   if (cEl) cEl.style.setProperty('--timer-progress', (G.timeLeft / 20 * 100) + '%');
@@ -571,7 +571,7 @@ function initPlacement() {
 
 // ===== Begin Game =====
 function beginGame() {
-  G.myRevealed.clear();  G.myExploded.clear();
+  G.myRevealed.clear(); G.myExploded.clear();
   G.oppRevealed.clear(); G.oppExploded.clear();
   G.gameOver = false; G.iWin = false;
   G.myTurn = G.isHost || G.vsAI; // host / player1 goes first
@@ -589,11 +589,11 @@ function renderBoard() {
   grid.style.gridTemplateColumns = `repeat(${G.gridSize},1fr)`;
 
   // Decide which board to show: my board (G.myTurn && !G.isWatching) OR opponent board (G.isWatching)
-  const total    = G.gridSize * G.gridSize;
-  const showOpp  = G.isWatching;
-  const mines    = showOpp ? G.myMines    : G.oppMines;
-  const revealed = showOpp ? G.oppRevealed: G.myRevealed;
-  const exploded = showOpp ? G.oppExploded: G.myExploded;
+  const total = G.gridSize * G.gridSize;
+  const showOpp = G.isWatching;
+  const mines = showOpp ? G.myMines : G.oppMines;
+  const revealed = showOpp ? G.oppRevealed : G.myRevealed;
+  const exploded = showOpp ? G.oppExploded : G.myExploded;
 
   for (let i = 0; i < total; i++) {
     const cell = document.createElement('button');
@@ -601,13 +601,13 @@ function renderBoard() {
 
     if (exploded.has(i)) {
       cell.className = 'cell cell-exploded';
-      cell.disabled  = true;
+      cell.disabled = true;
     } else if (revealed.has(i)) {
       cell.className = 'cell cell-revealed';
-      cell.disabled  = true;
+      cell.disabled = true;
     } else {
       cell.className = showOpp ? 'cell cell-hidden cell-opp-view' : 'cell cell-hidden';
-      cell.disabled  = showOpp; // disable clicks when watching opp
+      cell.disabled = showOpp; // disable clicks when watching opp
       if (!showOpp && !G.isWatching && G.myTurn && !G.gameOver)
         cell.addEventListener('click', () => onMyClick(i));
     }
@@ -655,7 +655,7 @@ function onMyClick(i) {
 
 function floodReveal(i, mines, revealed, exploded, isOpp) {
   // If chosen cell has 0 adjacent mines, auto reveal neighbors
-  const {r, c} = coord(i);
+  const { r, c } = coord(i);
   const adjacentMines = adj(r, c).filter(a => mines.has(idx(a.r, a.c))).length;
   if (adjacentMines > 0) return;
 
@@ -685,15 +685,15 @@ function switchToOppTurn() {
 // ===== AI Turn =====
 function doAITurn() {
   if (G.gameOver) return;
-  const total     = G.gridSize * G.gridSize;
+  const total = G.gridSize * G.gridSize;
   const available = [];
   for (let i = 0; i < total; i++) {
     if (!G.oppRevealed.has(i) && !G.oppExploded.has(i)) available.push(i);
   }
   if (!available.length) { switchBackToMyTurn(); return; }
 
-  const chosen  = available[Math.floor(Math.random() * available.length)];
-  const isMine  = G.myMines.has(chosen);
+  const chosen = available[Math.floor(Math.random() * available.length)];
+  const isMine = G.myMines.has(chosen);
 
   if (isMine) {
     G.oppExploded.add(chosen);
@@ -744,7 +744,7 @@ function applyOppMove(i, isExploded) {
 function switchBackToMyTurn() {
   if (G.gameOver) return;
   G.isWatching = false;
-  G.myTurn     = true;
+  G.myTurn = true;
   sound.play('switch');
   renderBoard();
   updateTurnUI();
@@ -758,34 +758,34 @@ function updateCellUI(i, cls, isOpp) {
   const showingOpp = G.isWatching;
   if ((isOpp && showingOpp) || (!isOpp && !showingOpp)) {
     el.className = `cell ${cls}`;
-    el.disabled  = true;
+    el.disabled = true;
   }
 }
 
 // ===== Turn UI =====
 function updateTurnUI() {
-  const label  = document.getElementById('turn-label');
+  const label = document.getElementById('turn-label');
   const subLbl = document.getElementById('board-sublabel');
-  const badge  = document.getElementById('turn-badge');
+  const badge = document.getElementById('turn-badge');
 
   if (G.isWatching) {
-    label.textContent  = '👁️ تشاهد الخصم';
+    label.textContent = '👁️ تشاهد الخصم';
     subLbl.textContent = '📡 شاشة الخصم - ضع عينيك!';
-    badge.className    = 'turn-badge watching';
-    badge.textContent  = 'مشاهدة';
+    badge.className = 'turn-badge watching';
+    badge.textContent = 'مشاهدة';
   } else {
-    label.textContent  = '⚔️ دورك!';
+    label.textContent = '⚔️ دورك!';
     subLbl.textContent = '🪐 شبكتك - اختر كوكباً بحذر!';
-    badge.className    = 'turn-badge my-turn';
-    badge.textContent  = 'دورك';
+    badge.className = 'turn-badge my-turn';
+    badge.textContent = 'دورك';
   }
 
   // Update mine counters
-  const myLeft  = G.oppMines.size - G.myExploded.size;
-  const oppLeft = G.myMines.size  - G.oppExploded.size;
-  const myEl    = document.getElementById('my-mines-left');
-  const oppEl   = document.getElementById('opp-mines-left');
-  if (myEl)  myEl.textContent  = myLeft  < 0 ? 0 : myLeft;
+  const myLeft = G.oppMines.size - G.myExploded.size;
+  const oppLeft = G.myMines.size - G.oppExploded.size;
+  const myEl = document.getElementById('my-mines-left');
+  const oppEl = document.getElementById('opp-mines-left');
+  if (myEl) myEl.textContent = myLeft < 0 ? 0 : myLeft;
   if (oppEl) oppEl.textContent = oppLeft < 0 ? 0 : oppLeft;
 }
 
@@ -801,17 +801,17 @@ function triggerExplosionFX() {
 
 // ===== Victory FX =====
 function createVictoryFX() {
-  const ov     = document.createElement('div');
+  const ov = document.createElement('div');
   ov.className = 'victory-overlay';
   document.body.appendChild(ov);
-  const colors = ['#ffd740','#ff6d00','#00e676','#42a5f5','#7c4dff','#ff1744'];
+  const colors = ['#ffd740', '#ff6d00', '#00e676', '#42a5f5', '#7c4dff', '#ff1744'];
   for (let i = 0; i < 80; i++) {
     const k = document.createElement('div');
     k.className = 'confetti';
-    k.style.left            = Math.random() * 100 + '%';
+    k.style.left = Math.random() * 100 + '%';
     k.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
     k.style.animationDuration = (1.5 + Math.random() * 2) + 's';
-    k.style.animationDelay    = Math.random() * 0.5 + 's';
+    k.style.animationDelay = Math.random() * 0.5 + 's';
     k.style.width = k.style.height = (6 + Math.random() * 8) + 'px';
     k.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
     ov.appendChild(k);
@@ -825,24 +825,24 @@ function endGame(iWin) {
   clearInterval(G.timerInterval);
 
   if (iWin) { sound.play('win'); createVictoryFX(); }
-  else       { sound.play('explode'); }
+  else { sound.play('explode'); }
 
   send({ type: 'game-over', iWin: !iWin }); // tell opponent the opposite
 
   const elapsed = Math.floor((Date.now() - G.startTime) / 1000);
-  const min     = Math.floor(elapsed / 60);
-  const sec     = elapsed % 60;
+  const min = Math.floor(elapsed / 60);
+  const sec = elapsed % 60;
 
   document.getElementById('result-icon').textContent = iWin ? '🏆' : '💥';
   const title = document.getElementById('result-title');
   title.textContent = iWin ? '🎉 فوز ساحق!' : '💀 انفجرت كل ألغامك!';
-  title.className   = `result-title ${iWin ? 'win' : 'lose'}`;
+  title.className = `result-title ${iWin ? 'win' : 'lose'}`;
   document.getElementById('result-message').textContent = iWin
     ? 'خصمك فجّر آخر لغم في شبكته! أنت البطل!'
     : 'انفجر آخر لغم في شبكتك! حاول مرة أخرى!';
-  document.getElementById('stat-time').textContent     = `${min}:${sec.toString().padStart(2,'0')}`;
+  document.getElementById('stat-time').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
   document.getElementById('stat-revealed').textContent = G.totalClicks;
-  document.getElementById('stat-mines').textContent    = G.oppMines.size;
+  document.getElementById('stat-mines').textContent = G.oppMines.size;
 
   setTimeout(() => showScreen('screen-result'), iWin ? 1800 : 1200);
 }
