@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="حقل الألغام - لعبة كشف ألغام تنافسية بأسلوب دراغون بول. العب ضد الذكاء الاصطناعي أو تحدّى أصدقائك!">
+  <title>حقل الألغام ⚡ Dragon Ball Minesweeper</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>💣</text></svg>">
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js"></script>
+</head>
+
+<body>
+
+  <!-- Particles -->
+  <div class="particles-container" id="particles"></div>
+
+  <!-- ============ SCREEN: LANDING ============ -->
+  <div class="screen active" id="screen-landing">
+    <div class="glass-card" style="max-width: 750px;">
+      <div style="text-align: center;">
+        <img src="image.png" alt="حقل الألغام" class="game-logo" id="game-logo-img">
+        <h1 class="game-title">حقل الألغام</h1>
+        <p class="game-subtitle">⚡ معركة كشف الألغام بأسلوب المحاربين ⚡</p>
+      </div>
+
+      <div class="rules-section">
+        <h2><span class="icon">📜</span> قواعد اللعبة</h2>
+
+        <div class="rule-item">
+          <span class="rule-number">1</span>
+          <span>أنشئ غرفة واختر حجم الشبكة وعدد الألغام، ثم حدد إذا تريد تلعب ضد <strong
+              style="color:var(--primary-glow);">الذكاء الاصطناعي</strong> أو <strong style="color:var(--gold);">لاعب
+              حقيقي</strong> عبر كود الغرفة.</span>
+        </div>
+
+        <div class="rule-item">
+          <span class="rule-number">2</span>
+          <span>كل لاعب يضع <strong style="color:var(--danger);">💣 ألغامه في شبكة الخصم</strong> خلال <strong
+              style="color:var(--accent);">20 ثانية</strong>. هذه الألغام هي فخاخك السرية!</span>
+        </div>
+
+        <div class="rule-item">
+          <span class="rule-number">3</span>
+          <span>اللعبة على <strong style="color:var(--gold);">حظ بحت! 🪐</strong> — لا أرقام، لا مساعدة. اضغط على أي
+            كوكب في شبكتك: إما <strong style="color:var(--safe-green);">✅ آمن</strong> أو <strong
+              style="color:var(--danger);">💥 ينفجر</strong>!</span>
+        </div>
+
+        <div class="rule-item">
+          <span class="rule-number">4</span>
+          <span>بعد كل ضغطة، تتحول الشاشة تلقائياً لـ <strong style="color:var(--energy-purple);">👁️ مشاهدة شبكة
+              الخصم</strong> وهو يختار. شاهد ماذا سيختار!</span>
+        </div>
+
+        <div class="rule-item">
+          <span class="rule-number">5</span>
+          <span>بعد اختيار الخصم، <strong style="color:var(--primary-glow);">ترجع شاشتك</strong> لاختيار كوكب جديد.
+            الأدوار تتبادل حتى يُفجّر أحدكم كل ألغامه.</span>
+        </div>
+
+        <div class="rule-item">
+          <span class="rule-number">6</span>
+          <span>الخاسر هو من <strong style="color:var(--danger);">ينفجر آخر لغم</strong> في شبكته! حتى لو انفجرت ألغام
+            كثيرة، اللعبة لا تنتهي إلا عند <strong style="color:var(--danger);">آخر واحد 💥</strong></span>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <button class="btn btn-primary btn-lg aura-effect" id="btn-start">
+          <span>⚡</span>
+          ابدأ المعركة
+          <span>⚡</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: LOBBY ============ -->
+  <div class="screen" id="screen-lobby">
+    <button class="back-btn" id="lobby-back">→ رجوع</button>
+
+    <div class="glass-card" style="max-width: 650px;">
+      <div style="text-align: center;">
+        <img src="image.png" alt="حقل الألغام" class="game-logo" style="width: 180px;">
+        <h2 class="game-title" style="font-size: 2rem;">اختر وضع اللعب</h2>
+        <p class="game-subtitle">أنشئ غرفتك أو انضم لمعركة قائمة</p>
+      </div>
+
+      <div class="lobby-buttons">
+        <button class="lobby-btn" id="btn-create-room">
+          <span class="btn-icon">🏰</span>
+          <span class="btn-title">إنشاء غرفة</span>
+          <span class="btn-desc">أنشئ غرفة جديدة وحدد قواعد المعركة</span>
+        </button>
+
+        <button class="lobby-btn" id="btn-join-room">
+          <span class="btn-icon">🚪</span>
+          <span class="btn-title">انضمام لغرفة</span>
+          <span class="btn-desc">ادخل كود الغرفة وانضم للمعركة</span>
+        </button>
+      </div>
+
+      <!-- Join Form (Inline) -->
+      <div class="join-form" id="join-form">
+        <h3 style="text-align: center; margin-bottom: 15px; color: var(--primary-glow);">أدخل كود الغرفة</h3>
+        <div class="form-group">
+          <input type="text" class="form-input code-input" id="join-code-input" placeholder="مثال: AB12CD" maxlength="6"
+            autocomplete="off">
+        </div>
+        <div style="text-align: center;">
+          <button class="btn btn-success" id="btn-join-submit">
+            <span>🚀</span>
+            انضمام
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: CREATE ROOM ============ -->
+  <div class="screen" id="screen-create">
+    <button class="back-btn" id="create-back">→ رجوع</button>
+
+    <div class="glass-card" style="max-width: 550px;">
+      <div style="text-align: center; margin-bottom: 25px;">
+        <h2 class="game-title" style="font-size: 2rem;">⚔️ إعداد الغرفة</h2>
+        <p class="game-subtitle">حدد قواعد المعركة</p>
+      </div>
+
+      <div class="form-group">
+        <label>📐 حجم الشبكة</label>
+        <select class="form-select" id="grid-size">
+          <option value="6">صغير (6×6) - 36 مربع</option>
+          <option value="8" selected>متوسط (8×8) - 64 مربع</option>
+          <option value="10">كبير (10×10) - 100 مربع</option>
+          <option value="12">ضخم (12×12) - 144 مربع</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>💣 عدد الألغام</label>
+        <select class="form-select" id="mine-count">
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>🎯 نوع الخصم</label>
+        <div class="toggle-group">
+          <button class="toggle-option active" id="toggle-ai">🤖 ذكاء اصطناعي</button>
+          <button class="toggle-option" id="toggle-player">👤 لاعب حقيقي</button>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-top: 30px;">
+        <button class="btn btn-accent btn-lg" id="btn-create-start">
+          <span>⚡</span>
+          إنشاء الغرفة
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: WAITING ROOM ============ -->
+  <div class="screen" id="screen-waiting">
+    <button class="back-btn" id="waiting-back">→ رجوع</button>
+
+    <div class="glass-card" style="max-width: 550px; text-align: center;">
+      <h2 class="game-title" style="font-size: 2rem;">⏳ بانتظار الخصم</h2>
+      <p class="game-subtitle">شارك كود الغرفة مع خصمك</p>
+
+      <div class="room-code-display">
+        <p class="room-code-label">كود الغرفة (اضغط للنسخ)</p>
+        <div class="room-code" id="waiting-room-code">------</div>
+        <p class="copy-hint">📋 اضغط على الكود لنسخه</p>
+      </div>
+
+      <div class="waiting-spinner">
+        <div class="spinner-ring"></div>
+        <p class="waiting-text">جاري انتظار انضمام اللاعب الآخر...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: MINE PLACEMENT ============ -->
+  <div class="screen" id="screen-placement">
+    <button class="back-btn" id="placement-back">→ رجوع</button>
+
+    <div style="text-align: center; max-width: 650px; width: 100%;">
+      <div class="phase-indicator phase-placement" style="display: inline-flex;">
+        <span class="phase-dot"></span>
+        <span>مرحلة وضع الألغام</span>
+      </div>
+
+      <h2 style="font-size: 1.5rem; margin-bottom: 5px; color: var(--text-primary);">💣 ضع ألغامك لخصمك!</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 15px;">اضغط على المربعات لوضع الألغام التي سيواجهها خصمك
+      </p>
+
+      <div class="timer-container">
+        <div class="timer-circle" id="placement-timer-circle">
+          <span class="timer-value" id="placement-timer-value">20</span>
+        </div>
+        <p class="timer-label">ثانية متبقية</p>
+      </div>
+
+      <div class="mine-counter">
+        ألغام متبقية: <span class="count" id="mines-remaining">0</span>
+      </div>
+
+      <div class="board-container" style="margin-top: 15px;">
+        <div class="game-grid" id="placement-grid"></div>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <button class="btn btn-success" id="btn-finish-placement">
+          <span>✅</span>
+          تأكيد وبدء اللعبة
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: GAME ============ -->
+  <div class="screen" id="screen-game">
+    <div style="text-align: center; max-width: 700px; width: 100%;">
+
+      <!-- Turn Badge -->
+      <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:10px;">
+        <span id="turn-badge" class="turn-badge my-turn">دورك</span>
+        <h2 id="turn-label" style="font-size:1.4rem; font-weight:900; color:var(--text-primary); margin:0;">⚔️ دورك!
+        </h2>
+      </div>
+
+      <!-- Board label -->
+      <p id="board-sublabel" style="color:var(--text-secondary); font-size:0.95rem; margin-bottom:14px;">
+        🪐 شبكتك - اختر كوكباً بحذر!
+      </p>
+
+      <!-- Stats Row -->
+      <div class="game-header">
+        <div class="player-info">
+          <div class="player-avatar">⚡</div>
+          <div>
+            <div style="font-size:0.75rem; color:var(--text-secondary);">ألغامك المتبقية</div>
+            <div id="my-mines-left" style="font-weight:900; font-size:1.3rem; color:var(--danger);">-</div>
+          </div>
+        </div>
+        <div style="font-size:1.5rem;">⚔️</div>
+        <div class="player-info">
+          <div>
+            <div style="font-size:0.75rem; color:var(--text-secondary); text-align:left;">ألغام الخصم المتبقية</div>
+            <div id="opp-mines-left"
+              style="font-weight:900; font-size:1.3rem; color:var(--primary-glow); text-align:left;">-</div>
+          </div>
+          <div class="player-avatar">🤖</div>
+        </div>
+      </div>
+
+      <!-- Board -->
+      <div class="board-container" style="margin-top:14px;">
+        <div class="game-grid" id="game-grid"></div>
+      </div>
+
+      <p style="color:var(--text-secondary); font-size:0.82rem; margin-top:12px;">
+        🪐 اضغط على كوكب في شبكتك — آمن أم لغم؟ حظ موفق!
+      </p>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: RESULT ============ -->
+  <div class="screen" id="screen-result">
+    <div class="glass-card" style="max-width: 550px; text-align: center;">
+      <div class="result-icon" id="result-icon">🏆</div>
+      <h2 class="result-title win" id="result-title">فوز ساحق!</h2>
+      <p class="result-message" id="result-message">لقد كشفت جميع المربعات الآمنة بنجاح!</p>
+
+      <div class="result-stats">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-time">0:00</div>
+          <div class="stat-label">⏱️ الوقت</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-revealed">0</div>
+          <div class="stat-label">✅ مربعات مكشوفة</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-mines">0</div>
+          <div class="stat-label">💣 ألغام</div>
+        </div>
+      </div>
+
+      <div class="result-buttons">
+        <button class="btn btn-primary" id="btn-play-again">
+          <span>🔄</span>
+          لعب مرة أخرى
+        </button>
+        <button class="btn btn-outline" id="btn-back-home">
+          <span>🏠</span>
+          الرئيسية
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <script src="firebase-config.js"></script>
+  <script src="game.js"></script>
+
+  <div class="animated-footer">
+    <span class="footer-text">CS.HAIDER MUSHTAQ</span>
+  </div>
+</body>
+
+</html>
