@@ -243,6 +243,15 @@ function setupChannel() {
     const database = firebase.database();
     const roomRef = database.ref(`rooms/${G.roomCode}`);
     
+    // Verify Firebase connection
+    database.ref('.info/connected').on('value', (snapshot) => {
+      if (snapshot.val() === true) {
+        console.log('✅ Firebase متصل:', G.roomCode);
+      } else {
+        console.warn('❌ Firebase غير متصل');
+      }
+    });
+    
     G_FirebaseChannel = {
       roomRef: roomRef,
       messagesRef: database.ref(`rooms/${G.roomCode}/messages`),
@@ -253,40 +262,81 @@ function setupChannel() {
 
     // Initialize room in database
     if (G.isHost) {
+      console.log('🏠 إنشاء غرفة مضيف:', G.roomCode);
+      // Host creates room with proper structure
       roomRef.set({
         created: Date.now(),
         host: true,
-        players: 1
+        hostReady: true,
+        players: 1,
+        status: 'waiting'
+      }).then(() => {
+        console.log('✅ تم إنشاء الغرفة بنجاح');
       }).catch(err => {
-        console.error('Failed to create room:', err);
-        showToast('خطأ في إنشاء الغرفة', 'error');
+        console.error('❌ فشل إنشاء الغرفة:', err);
+        showToast('خطأ في إنشاء الغرفة: ' + err.message, 'error');
       });
+      
+      // Set up listeners BEFORE guest connects
+      const messagesRef = G_FirebaseChannel.messagesRef;
+      messagesRef.limitToLast(50).on('child_added', (snapshot) => {
+        const msg = snapshot.val();
+        if (msg && G_FirebaseChannel && G_FirebaseChannel.isOpen) {
+          console.log('📨 رسالة من المضيف:', msg.type);
+          handleChannelMsg(msg);
+        }
+      });
+      G_FirebaseChannel.listeners.push({ ref: messagesRef, event: 'child_added' });
+      
     } else {
-      // Guest joining
+      // Guest joining - verify room exists with timeout
+      let roomCheckCompleted = false;
+      console.log('👤 ضيف ينضم إلى الغرفة:', G.roomCode);
+      
       roomRef.once('value', (snapshot) => {
+        roomCheckCompleted = true;
         if (!snapshot.exists()) {
-          showToast('لم يُعثر على الغرفة. تحقق من الكود', 'error');
+          console.error('❌ الغرفة غير موجودة:', G.roomCode);
+          showToast('❌ لم يُعثر على الغرفة.\n\nتحقق من:\n✓ الكود صحيح (6 أحرف)\n✓ Firebase مهيأ\n✓ الخصم في الغرفة', 'error');
           G_FirebaseChannel.isOpen = false;
+          cleanupChannel();
+          resetGame();
+          showScreen('screen-lobby');
           return;
         }
-        // Room exists, update player count
-        roomRef.update({ players: 2 }).catch(err => console.error('Join error:', err));
+        
+        console.log('✅ تم التحقق من وجود الغرفة');
+        // Room exists, now set up message listeners BEFORE updating player count
+        const messagesRef = G_FirebaseChannel.messagesRef;
+        messagesRef.limitToLast(50).on('child_added', (snapshot) => {
+          const msg = snapshot.val();
+          if (msg && G_FirebaseChannel && G_FirebaseChannel.isOpen) {
+            console.log('📨 رسالة من الضيف:', msg.type);
+            handleChannelMsg(msg);
+          }
+        });
+        G_FirebaseChannel.listeners.push({ ref: messagesRef, event: 'child_added' });
+        
+        // Now update player count and send join message
+        roomRef.update({ players: 2 }).catch(err => console.error('❌ خطأ في التحديث:', err));
+        send({ type: 'join' });
       });
+      
+      // Timeout check for room verification
+      setTimeout(() => {
+        if (!roomCheckCompleted && G_FirebaseChannel && G_FirebaseChannel.isOpen) {
+          console.error('⏱️ انتهاء المهلة الزمنية للتحقق من الغرفة');
+          showToast('❌ لم يُعثر على الغرفة.\n\nتحقق من:\n✓ الكود صحيح (6 أحرف)\n✓ Firebase مهيأ\n✓ الخصم في الغرفة', 'error');
+          G_FirebaseChannel.isOpen = false;
+          cleanupChannel();
+          resetGame();
+          showScreen('screen-lobby');
+        }
+      }, 3000);
     }
-
-    // Listen for messages
-    const messagesRef = G_FirebaseChannel.messagesRef;
-    messagesRef.limitToLast(50).on('child_added', (snapshot) => {
-      const msg = snapshot.val();
-      if (msg && G_FirebaseChannel && G_FirebaseChannel.isOpen) {
-        handleChannelMsg(msg);
-      }
-    });
-
-    G_FirebaseChannel.listeners.push({ ref: messagesRef, event: 'child_added' });
   } catch (error) {
-    console.error('Firebase setup error:', error);
-    showToast('خطأ في الاتصال بالخادم', 'error');
+    console.error('❌ خطأ في إعداد Firebase:', error);
+    showToast('خطأ في الاتصال بالخادم: ' + error.message, 'error');
     setupLocalChannel();
   }
 }
@@ -297,8 +347,10 @@ function setupLocalChannel() {
     G.channel = new BroadcastChannel(`minebattle-${G.roomCode}`);
     G.channel.onmessage = e => handleChannelMsg(e.data);
     console.log('Using local BroadcastChannel (same device only)');
+    showToast('📱 وضع اللاعبين بنفس الجهاز فقط', 'info');
   } catch (error) {
     console.error('BroadcastChannel not available:', error);
+    showToast('⚠️ يرجى استخدام Firebase للعب مع أشخاص آخرين', 'warning');
   }
 }
 
@@ -326,15 +378,19 @@ function send(msg) {
     try {
       msg.timestamp = Date.now();
       msg.sender = G.isHost ? 'host' : 'guest';
+      console.log('📤 إرسال رسالة:', msg.type, 'من', msg.sender);
       G_FirebaseChannel.messagesRef.push(msg).catch(err => {
-        console.error('Error sending message:', err);
+        console.error('❌ خطأ في إرسال الرسالة:', err);
       });
     } catch (error) {
-      console.error('Send error:', error);
+      console.error('❌ خطأ في Send:', error);
     }
   } else if (G.channel) {
     // Fallback to BroadcastChannel
+    console.log('📤 إرسال عبر BroadcastChannel:', msg.type);
     G.channel.postMessage(msg);
+  } else {
+    console.warn('⚠️ لا يوجد قناة اتصال متاحة');
   }
 }
 
@@ -349,6 +405,7 @@ function handleChannelMsg(msg) {
       clearTimeout(G.connectionTimeoutId); // Clear timeout on successful connection
       G.oppConnected = true;
       showToast('✅ انضم خصمك! جاهز للمعركة ⚡', 'success');
+      // Host sends settings back to guest
       send({ type: 'settings', gridSize: G.gridSize, mineCount: G.mineCount });
       setTimeout(() => startPlacement(), 800);
       break;
@@ -356,6 +413,7 @@ function handleChannelMsg(msg) {
       clearTimeout(G.connectionTimeoutId); // Clear timeout on successful connection
       G.gridSize = msg.gridSize; G.mineCount = msg.mineCount;
       G.oppConnected = true;
+      showToast('✅ تم التحقق من الغرفة! جاهز للبدء ⚡', 'success');
       startPlacement();
       break;
     case 'mines-placed':
@@ -376,11 +434,10 @@ function handleChannelMsg(msg) {
 function joinRoom(code) {
   G.roomCode = code; G.isHost = false; G.vsAI = false;
   setupChannel();
-  send({ type: 'join' });
   showToast('🔌 جاري الاتصال بالغرفة...', 'info');
   
-  // Wait up to 10 seconds for connection
-  const timeoutId = setTimeout(() => { 
+  // Wait up to 10 seconds for connection (moved to setupChannel for guest)
+  G.connectionTimeoutId = setTimeout(() => { 
     if (!G.oppConnected) {
       console.warn(`Connection timeout for room code: ${code}`);
       showToast('❌ لم يُعثر على الغرفة.\n\nتحقق من:\n✓ الكود صحيح (6 أحرف)\n✓ Firebase مهيأ\n✓ الخصم في الغرفة', 'error');
@@ -389,9 +446,6 @@ function joinRoom(code) {
       showScreen('screen-lobby');
     }
   }, 10000);
-  
-  // Store timeout ID so we can clear it when connection succeeds
-  G.connectionTimeoutId = timeoutId;
 }
 
 // ===== Waiting Room =====
